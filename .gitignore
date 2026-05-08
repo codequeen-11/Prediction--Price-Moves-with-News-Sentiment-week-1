@@ -1,0 +1,12 @@
+# Data - do not upload datasets
+data/raw/
+*.csv
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.vscode/data/raw/
+data/raw/
+*.csv

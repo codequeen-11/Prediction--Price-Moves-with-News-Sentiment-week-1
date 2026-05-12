@@ -5,6 +5,12 @@ import matplotlib.pyplot as plt
 import talib
 
 
+try:
+    import pynance as pn
+    PYNANCE_AVAILABLE = True
+except ImportError:
+    PYNANCE_AVAILABLE = False
+
 def load_and_prepare_data(file_path):
     """
     Load and clean historical stock price data.
@@ -62,8 +68,38 @@ def compute_indicators(df):
     df["Cumulative_Return"] = (1 + df["Daily_Return"]).cumprod() - 1
     df["Volatility_20"] = df["Daily_Return"].rolling(window=20).std()
 
+  # Drawdown metric
+    df["Running_Max"] = df["Close"].cummax()
+    df["Drawdown"] = (df["Close"] - df["Running_Max"]) / df["Running_Max"]
     return df
 
+
+
+def calculate_pynance_metrics(df):
+    """
+    Calculate additional PyNance-inspired risk/return metrics.
+
+    PyNance complements TA-Lib by focusing on financial performance
+    and risk metrics, while TA-Lib focuses mainly on technical indicators.
+    """
+
+    returns = df["Daily_Return"].dropna()
+
+    metrics = {
+        "Total Return": df["Cumulative_Return"].iloc[-1],
+        "Average Daily Return": returns.mean(),
+        "Daily Volatility": returns.std(),
+        "Annualized Volatility": returns.std() * np.sqrt(252),
+        "Sharpe-like Ratio": (returns.mean() / returns.std()) * np.sqrt(252),
+        "Maximum Drawdown": df["Drawdown"].min(),
+    }
+
+    if PYNANCE_AVAILABLE:
+        metrics["PyNance Status"] = "PyNance imported successfully"
+    else:
+        metrics["PyNance Status"] = "PyNance not available, metrics calculated manually"
+
+    return pd.DataFrame(metrics, index=["Value"]).T
 
 def plot_stock_analysis(df, stock_name):
     """
@@ -111,3 +147,33 @@ def plot_stock_analysis(df, stock_name):
 
     plt.tight_layout()
     plt.show()
+
+
+def plot_risk_metrics(df, stock_name):
+    """
+    Plot cumulative return and drawdown.
+    """
+
+    fig, axes = plt.subplots(
+        2,
+        1,
+        figsize=(14, 8),
+        sharex=True
+    )
+
+    axes[0].plot(df.index, df["Cumulative_Return"], label="Cumulative Return")
+    axes[0].set_title(f"{stock_name} Cumulative Return")
+    axes[0].set_ylabel("Return")
+    axes[0].legend()
+    axes[0].grid(True)
+
+    axes[1].plot(df.index, df["Drawdown"], label="Drawdown")
+    axes[1].set_title(f"{stock_name} Drawdown")
+    axes[1].set_xlabel("Date")
+    axes[1].set_ylabel("Drawdown")
+    axes[1].legend()
+    axes[1].grid(True)
+
+    plt.tight_layout()
+    plt.show()
+    

@@ -26,3 +26,25 @@ def calculate_correlation(merged_df):
     )
 
     return correlation, p_value
+
+def align_news_to_trading_days(news_df, stock_df):
+
+    trading_days = sorted(stock_df["date_only"].unique())
+
+    def get_next_trading_day(news_date):
+
+        for trading_day in trading_days:
+            if trading_day >= news_date:
+                return trading_day
+
+        return None
+
+    news_df = news_df.copy()
+
+    news_df["aligned_date"] = news_df["date_only"].apply(
+        get_next_trading_day
+    )
+
+    news_df = news_df.dropna(subset=["aligned_date"])
+
+    return news_df
